@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pinta tu foto en acrílico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600&family=Archivo+Narrow:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --beige: #fcf6ec; --brown: #27221a; --gray: #f3ede2; --accent: #d2942d;
+      --line: rgba(39, 34, 26, .2); --muted: rgba(39, 34, 26, .6);
+      --font-body: 'Archivo', sans-serif; --font-narrow: 'Archivo Narrow', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: var(--font-body); font-weight: 500; background: var(--beige); color: var(--brown); max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 5rem; line-height: 1.45; }
+    h1, h2 { font-weight: 500; color: var(--brown); }
+    h1 { font-size: clamp(2.6rem, 5.5vw, 4.6rem); line-height: .9; letter-spacing: -0.04em; margin: 0 0 1.2rem; }
+    .sub { color: var(--muted); margin: 0 auto; max-width: 30rem; }
+    .eyebrow, label, figcaption, .swatch small, button {
+      font-family: var(--font-narrow); font-size: .75rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    }
+    .eyebrow { display: block; margin-bottom: 1rem; color: var(--accent); }
+    .card { background: var(--gray); border: 1px solid var(--line); padding: 2rem; margin-bottom: 1.5rem; }
+    #drop { border: 1px dashed var(--brown); padding: 2.5rem; text-align: center; cursor: pointer; transition: .3s; background: var(--beige); }
+    #drop.over { border-color: var(--accent); background: #fbeed6; }
+    #preview { max-width: 100%; max-height: 320px; display: none; margin: 1rem auto 0; }
+    .options { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-top: 1.5rem; align-items: end; }
+    .options label { display: flex; flex-direction: column; gap: .4rem; color: var(--muted); }
+    .options input, .options select { font-family: var(--font-body); font-size: 1rem; font-weight: 500; color: var(--brown); padding: .7rem .8rem; border: 1px solid var(--line); border-radius: 0; background: var(--beige); min-width: 130px; }
+    .options input:focus, .options select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+    /* Botón contorneado con círculo-flecha que cambia de lado al pasar el ratón */
+    button { position: relative; padding: 1rem 2rem; margin-right: 3.2rem; border: 1px solid var(--brown); border-radius: 0; background: transparent; color: var(--brown); cursor: pointer; transition: .3s; }
+    button::before, button::after {
+      content: '→'; position: absolute; top: 50%; display: flex; align-items: center; justify-content: center;
+      width: 2.6rem; height: 2.6rem; border: 1px solid var(--brown); border-radius: 50%; font-size: 1rem; transition: .3s;
+    }
+    button::before { left: -3.2rem; transform: translateY(-50%) scale(0) rotate(-45deg); background: var(--brown); color: var(--beige); }
+    button::after { right: -3.2rem; transform: translateY(-50%); }
+    button:not(:disabled):hover, button:not(:disabled):focus-visible { background: var(--brown); color: var(--beige); transform: translateX(3.2rem); }
+    button:not(:disabled):hover::before, button:not(:disabled):focus-visible::before { transform: translateY(-50%) scale(1) rotate(0); }
+    button:not(:disabled):hover::after, button:not(:disabled):focus-visible::after { transform: translateY(-50%) scale(0); }
+    button:disabled { opacity: .35; cursor: not-allowed; }
+
+    .step h2 { display: flex; align-items: center; gap: 1rem; margin: 0 0 1rem; font-size: clamp(1.4rem, 2.4vw, 2rem); line-height: 1; letter-spacing: -0.02em; }
+    .num { border: 1px solid var(--brown); border-radius: 50%; width: 2.6rem; height: 2.6rem; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-narrow); font-size: .9rem; font-weight: 600; flex-shrink: 0; letter-spacing: 0; }
+    .step h2 input { margin-left: auto; width: 1.3rem; height: 1.3rem; accent-color: var(--brown); }
+    .step.done { opacity: .5; }
+    .imgs { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+    .imgs figure { margin: 0; flex: 1 1 260px; }
+    .imgs canvas { width: 100%; height: auto; border: 1px solid var(--line); }
+    figcaption { color: var(--muted); text-align: center; margin-top: .4rem; }
+    .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: .8rem; }
+    .swatch { display: flex; gap: .8rem; align-items: center; border: 1px solid var(--line); background: var(--beige); padding: .6rem; }
+    .chips { display: flex; flex-direction: column; flex-shrink: 0; }
+    .chip { width: 48px; height: 30px; }
+    .swatch small { color: var(--muted); }
+    .tip { background: var(--beige); border-left: 2px solid var(--accent); padding: .7rem 1rem; margin: .8rem 0; }
+    #results { display: none; }
+    .hero { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+    .hero .title { flex: 1; text-align: center; }
+    .model3d { position: relative; width: 260px; height: 380px; flex-shrink: 0; cursor: grab; touch-action: none; }
+    .model3d:active { cursor: grabbing; }
+    @media (max-width: 760px) { .hero { flex-wrap: wrap; justify-content: center; } .hero .title { order: -1; flex-basis: 100%; } .model3d { width: 45%; height: 300px; } }
+    .toolbar { display: flex; gap: .6rem; justify-content: flex-end; margin-bottom: 1.5rem; }
+    @media print {
+      body { background: #fff; }
+      .no-print, .step h2 input { display: none !important; }
+      .card { background: #fff; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero no-print">
+    <div id="head3d" class="model3d"></div>
+    <div class="title">
+      <span class="eyebrow">Tutorial de pintura acrílica</span>
+      <h1>Pinta tu foto en acrílico</h1>
+      <p class="sub">Sube una imagen y obtén un tutorial paso a paso: dibujo, valores, mezclas de color y orden de pintado.</p>
+    </div>
+    <div id="tube3d" class="model3d"></div>
+  </header>
+
+  <section class="card no-print">
+    <div id="drop">
+      <strong>Arrastra una imagen aquí</strong> o haz clic para elegirla
+      <input type="file" id="file" accept="image/*" hidden>
+      <img id="preview" alt="Vista previa">
+    </div>
+    <div class="options">
+      <label>Ancho del lienzo (cm)
+        <input type="number" id="widthCm" value="30" min="10" max="200">
+      </label>
+      <label>Alto del lienzo (cm)
+        <input type="number" id="heightCm" value="40" min="10" max="200" readonly title="Se calcula según la proporción de la imagen">
+      </label>
+      <label>Número de colores
+        <select id="numColors">
+          <option>5</option><option>6</option><option selected>8</option><option>10</option><option>12</option>
+        </select>
+      </label>
+      <label>Nivel
+        <select id="level">
+          <option value="beginner" selected>Principiante</option>
+          <option value="advanced">Intermedio / avanzado</option>
+        </select>
+      </label>
+      <button id="generate" disabled>Generar tutorial</button>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="toolbar no-print">
+      <button class="secondary" onclick="window.print()">Imprimir / guardar PDF</button>
+    </div>
+    <div id="steps"></div>
+  </section>
+
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    function createViewer(box, object, { camZ = 8.5, minPolar = 0, maxPolar = Math.PI } = {}) {
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(box.clientWidth, box.clientHeight);
+      box.append(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+      const camera = new THREE.PerspectiveCamera(35, box.clientWidth / box.clientHeight, 0.1, 100);
+      camera.position.set(0, 0, camZ);
+      const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+      sun.position.set(3, 4, 5);
+      scene.add(sun, new THREE.AmbientLight(0xffffff, 0.4), object);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableZoom = false;
+      controls.enablePan = false;
+      controls.enableDamping = true;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 2;
+      controls.minPolarAngle = minPolar;
+      controls.maxPolarAngle = maxPolar;
+      controls.addEventListener('start', () => controls.autoRotate = false);
+
+      new ResizeObserver(() => {
+        renderer.setSize(box.clientWidth, box.clientHeight);
+        camera.aspect = box.clientWidth / box.clientHeight;
+        camera.updateProjectionMatrix();
+      }).observe(box);
+
+      renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+    }
+
+    // Etiqueta dibujada en canvas: el ancho cubre toda la circunferencia, el centro (x=512) mira al frente
+    function labelTexture() {
+      const c = document.createElement('canvas'); c.width = 1024; c.height = 1024;
+      const g = c.getContext('2d');
+      g.fillStyle = '#f7e3a6'; g.fillRect(0, 0, 1024, 1024);
+      // pincelada de pintura amarilla
+      g.fillStyle = '#f0b400';
+      g.beginPath(); g.moveTo(0, 470);
+      for (let x = 0; x <= 1024; x += 32) g.lineTo(x, 430 - 70 * Math.sin(x / 90) * Math.sin(x / 37) - (x > 520 && x < 700 ? 120 : 0));
+      g.lineTo(1024, 1024); g.lineTo(0, 1024); g.fill();
+      // medallón con retrato
+      g.fillStyle = '#2b1d12'; g.beginPath(); g.arc(512, 150, 42, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#f7e3a6'; g.beginPath(); g.arc(512, 150, 34, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#2b1d12'; g.beginPath(); g.ellipse(512, 145, 14, 18, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(512, 180, 24, 12, 0, Math.PI, 0); g.fill();
+      // logotipo
+      g.fillStyle = '#1b130c'; g.textAlign = 'center';
+      g.font = 'italic bold 150px "Snell Roundhand", "Brush Script MT", "Segoe Script", cursive';
+      g.fillText('Goya', 512, 330);
+      // banda ACRÍLICO
+      g.fillStyle = '#16120e'; g.fillRect(0, 470, 1024, 95);
+      g.fillStyle = '#fff'; g.font = 'bold 72px system-ui, Arial'; g.fillText('ACRÍLICO', 512, 543);
+      // número y nombre de color
+      g.strokeStyle = '#16120e'; g.lineWidth = 5; g.beginPath(); g.arc(380, 640, 30, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = '#16120e'; g.font = 'bold 34px system-ui, Arial'; g.fillText('88', 380, 652);
+      g.textAlign = 'left'; g.font = 'bold 26px system-ui, Arial';
+      ['OCRE AMARILLO', 'OCRE AMARELO', 'YELLOW OCHRE', 'OCRE JAUNE'].forEach((t, i) => g.fillText(t, 425, 622 + i * 28));
+      g.fillStyle = '#1e2a78'; g.fillRect(380, 745, 26, 26);
+      g.fillStyle = '#16120e'; g.font = 'bold 26px system-ui, Arial'; g.fillText('PY42   ★★★', 425, 768);
+      // banda inferior Arts TITAN
+      g.fillStyle = '#16120e'; g.fillRect(0, 830, 1024, 70);
+      g.fillStyle = '#fff'; g.textAlign = 'center';
+      g.font = 'italic 34px "Snell Roundhand", "Brush Script MT", cursive'; g.fillText('Arts', 395, 878);
+      g.font = 'bold 44px Georgia, serif'; g.fillText('TITAN', 520, 880);
+      g.font = '22px system-ui, Arial'; g.fillText('DESDE 1917', 650, 876);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 8;
+      return tex;
+    }
+
+    const tube = new THREE.Group();
+    const R = 0.6, H = 3.2;
+
+    // Cuerpo: cilindro que se aplana hacia el sellado superior
+    const bodyGeo = new THREE.CylinderGeometry(R, R, H, 96, 64, true, Math.PI);
+    const pos = bodyGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const t = (pos.getY(i) + H / 2) / H;
+      const f = THREE.MathUtils.smoothstep(t, 0.45, 1);
+      pos.setX(i, pos.getX(i) * (1 + 0.38 * f));
+      pos.setZ(i, pos.getZ(i) * (1 - 0.95 * f));
+    }
+    bodyGeo.computeVertexNormals();
+    tube.add(new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ map: labelTexture(), roughness: 0.35, metalness: 0.05, side: THREE.DoubleSide })));
+
+    // Pestaña superior para colgar, con agujero
+    const w = R * 1.38, s = new THREE.Shape();
+    s.moveTo(-w, 0); s.lineTo(w, 0); s.lineTo(w, 0.45); s.lineTo(-w, 0.45); s.lineTo(-w, 0);
+    const hole = new THREE.Path(); hole.absellipse(0, 0.27, 0.22, 0.07, 0, Math.PI * 2, true); s.holes.push(hole);
+    const tab = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: false }),
+      new THREE.MeshPhysicalMaterial({ color: 0xd9dde2, roughness: 0.25, transparent: true, opacity: 0.85 })
+    );
+    tab.position.set(0, H / 2 - 0.02, -0.02);
+    tube.add(tab);
+
+    // Hombro y tapón inferior
+    const capMat = new THREE.MeshPhysicalMaterial({ color: 0xf1f1ee, roughness: 0.3, clearcoat: 0.6, transparent: true, opacity: 0.92 });
+    const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(R, 0.42, 0.18, 64), new THREE.MeshStandardMaterial({ color: 0xf0b400, roughness: 0.35 }));
+    shoulder.position.y = -H / 2 - 0.09;
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.47, 0.5, 0.6, 64), capMat);
+    cap.position.y = -H / 2 - 0.18 - 0.3;
+    tube.add(shoulder, cap);
+
+    tube.position.y = 0.2;
+    tube.rotation.z = -0.12;
+    createViewer(document.getElementById('tube3d'), tube);
+
+    // ---------- Cabeza estilizada (pelo castaño corto, barba de pocos días, sonrisa, camiseta azul marino) ----------
+    function buildHead() {
+      const head = new THREE.Group();
+      const mat = (color, roughness = 0.6) => new THREE.MeshStandardMaterial({ color, roughness });
+      const skin = mat(0xe0a98a), hair = mat(0x3d2817, 0.9), beard = mat(0x8a6450, 1);
+      const shirt = mat(0x2b3240, 0.95), white = mat(0xf8f6f2, 0.3), dark = mat(0x1a1a1a, 0.2);
+      const part = (geo, material, [x, y, z], [sx, sy, sz] = [1, 1, 1], [rx, ry, rz] = [0, 0, 0]) => {
+        const m = new THREE.Mesh(geo, material);
+        m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.set(rx, ry, rz);
+        head.add(m); return m;
+      };
+      const sphere = new THREE.SphereGeometry(1, 64, 48);
+
+      // Cráneo, mandíbula con barba, orejas, nariz, cuello
+      part(sphere, skin, [0, 0.3, 0], [0.82, 1, 0.85]);
+      part(sphere, beard, [0, -0.35, 0.15], [0.66, 0.54, 0.64]);
+      part(sphere, skin, [0.82, 0.15, 0], [0.12, 0.25, 0.18]);
+      part(sphere, skin, [-0.82, 0.15, 0], [0.12, 0.25, 0.18]);
+      part(sphere, skin, [0, 0.02, 0.85], [0.13, 0.2, 0.18]);
+      part(new THREE.CylinderGeometry(0.38, 0.42, 0.9, 32), skin, [0, -0.95, -0.05]);
+
+      // Ojos sonrientes (algo entornados), iris marrón
+      for (const s of [-1, 1]) {
+        part(sphere, white, [0.3 * s, 0.25, 0.8], [0.11, 0.075, 0.066]);
+        part(sphere, mat(0x5a3a22, 0.3), [0.3 * s, 0.25, 0.86], [0.055, 0.055, 0.025]);
+        part(sphere, dark, [0.3 * s, 0.25, 0.875], [0.026, 0.026, 0.015]);
+        part(new THREE.BoxGeometry(0.32, 0.06, 0.08), hair, [0.3 * s, 0.43, 0.8], [1, 1, 1], [0, 0.25 * s, -0.12 * s]);
+      }
+
+      // Boca: sonrisa abierta con dientes y bigote
+      part(new THREE.SphereGeometry(1, 48, 24, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat(0x5a1e1e, 0.5), [0, -0.3, 0.8], [0.27, 0.13, 0.1]);
+      part(new THREE.BoxGeometry(0.4, 0.07, 0.05), white, [0, -0.33, 0.86]);
+      part(new THREE.CapsuleGeometry(0.035, 0.36, 8, 16), hair, [0, -0.2, 0.86], [1, 1, 1], [0, 0, Math.PI / 2]);
+
+      // Pelo corto con tupé
+      part(new THREE.SphereGeometry(1.04, 64, 32, 0, Math.PI * 2, 0, Math.PI * 0.42), hair, [0, 0.32, -0.02], [0.82, 1, 0.85], [-0.3, 0, 0]);
+      part(sphere, hair, [0, 1.15, 0.3], [0.5, 0.18, 0.42], [0.3, 0, 0]);
+
+      // Hombros con camiseta y cuello redondo
+      part(new THREE.SphereGeometry(1, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2), shirt, [0, -1.85, 0], [1.55, 0.65, 0.75]);
+      part(new THREE.TorusGeometry(0.42, 0.06, 16, 48), shirt, [0, -1.33, 0.03], [1, 1, 1], [Math.PI / 2 - 0.15, 0, 0]);
+
+      head.position.y = 0.3;
+      return head;
+    }
+    createViewer(document.getElementById('head3d'), buildHead(), { camZ: 8, minPolar: Math.PI / 3, maxPolar: Math.PI / 1.7 });
+  </script>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    let sourceImg = null;
+
+    // ---------- Carga de imagen ----------
+    const drop = $('#drop'), fileInput = $('#file');
+    drop.addEventListener('click', e => { if (e.target !== fileInput) fileInput.click(); });
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault(); drop.classList.remove('over');
+      if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => fileInput.files[0] && loadFile(fileInput.files[0]));
+    $('#widthCm').addEventListener('input', updateHeight);
+
+    function loadFile(file) {
+      if (!file.type.startsWith('image/')) { alert('Selecciona un archivo de imagen.'); return; }
+      const im = new Image();
+      im.onload = () => {
+        sourceImg = im;
+        const p = $('#preview'); p.src = im.src; p.style.display = 'block';
+        $('#generate').disabled = false;
+        updateHeight();
+      };
+      im.src = URL.createObjectURL(file);
+    }
+
+    function updateHeight() {
+      if (!sourceImg) return;
+      const w = +$('#widthCm').value || 30;
+      $('#heightCm').value = Math.round(w * sourceImg.naturalHeight / sourceImg.naturalWidth);
+    }
+
+    // ---------- Conversión de color ----------
+    const toLin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+    const fromLin = c => { c = Math.max(0, Math.min(1, c)); return Math.round(255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055)); };
+
+    function linToLab(r, g, b) {
+      let x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047;
+      let y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      let z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+      const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+      x = f(x); y = f(y); z = f(z);
+      return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+    }
+    const rgbToLab = ([r, g, b]) => linToLab(toLin(r), toLin(g), toLin(b));
+
+    function labToRgb([L, a, b]) {
+      let y = (L + 16) / 116, x = a / 500 + y, z = y - b / 200;
+      const f = t => t ** 3 > 0.008856 ? t ** 3 : (t - 16 / 116) / 7.787;
+      x = f(x) * 0.95047; y = f(y); z = f(z) * 1.08883;
+      return [
+        fromLin(3.2406 * x - 1.5372 * y - 0.4986 * z),
+        fromLin(-0.9689 * x + 1.8758 * y + 0.0415 * z),
+        fromLin(0.0557 * x - 0.2040 * y + 1.0570 * z)
+      ];
+    }
+    const dist2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2;
+    const css = ([r, g, b]) => `rgb(${r},${g},${b})`;
+
+    // ---------- Pigmentos y mezclas ----------
+    // s = fuerza tintórea aproximada
+    const PIGMENTS = [
+      { name: 'Blanco de titanio', rgb: [244, 244, 238], s: 1 },
+      { name: 'Negro marfil', rgb: [28, 28, 30], s: 1.2 },
+      { name: 'Amarillo cadmio claro', rgb: [255, 210, 0], s: 1 },
+      { name: 'Ocre amarillo', rgb: [196, 145, 55], s: 0.8 },
+      { name: 'Rojo cadmio medio', rgb: [210, 35, 30], s: 1 },
+      { name: 'Magenta quinacridona', rgb: [165, 20, 85], s: 1 },
+      { name: 'Siena tostada', rgb: [138, 62, 32], s: 0.9 },
+      { name: 'Sombra tostada', rgb: [80, 52, 38], s: 1 },
+      { name: 'Azul ultramar', rgb: [30, 40, 140], s: 1 },
+      { name: 'Azul ftalo', rgb: [0, 55, 110], s: 2 },
+      { name: 'Verde ftalo', rgb: [0, 95, 75], s: 2 },
+    ].map(p => ({ ...p, ln: p.rgb.map(c => Math.log(Math.max(toLin(c), 0.004))) }));
+
+    // Aproximación sustractiva: media geométrica ponderada de la reflectancia
+    function mixLab(parts) {
+      let wsum = 0; const ln = [0, 0, 0];
+      for (const [i, n] of parts) wsum += n * PIGMENTS[i].s;
+      for (const [i, n] of parts) {
+        const w = n * PIGMENTS[i].s / wsum;
+        for (let c = 0; c < 3; c++) ln[c] += w * PIGMENTS[i].ln[c];
+      }
+      return linToLab(Math.exp(ln[0]), Math.exp(ln[1]), Math.exp(ln[2]));
+    }
+
+    const gcd = (a, b) => b ? gcd(b, a % b) : a;
+    const MIX_BASES = (() => {
+      const bases = [[]];
+      for (let i = 2; i < PIGMENTS.length; i++) {
+        bases.push([[i, 1]]);
+        for (let j = i + 1; j < PIGMENTS.length; j++)
+          for (let a = 1; a <= 3; a++) for (let b = 1; b <= 3; b++)
+            if (gcd(a, b) === 1) bases.push([[i, a], [j, b]]);
+      }
+      return bases;
+    })();
+
+    function findMix(targetLab) {
+      let best = null;
+      for (const base of MIX_BASES) for (const m of [1, 2, 4]) for (const k of [0, 1]) {
+        if (m > 1 && k === 0 && base.length) continue;
+        for (const w of [0, 1, 2, 3, 4, 6, 8, 12, 16]) {
+          const parts = base.map(([i, n]) => [i, n * m]);
+          if (w) parts.push([0, w]);
+          if (k) parts.push([1, k]);
+          if (!parts.length) continue;
+          const lab = mixLab(parts);
+          const dE = Math.sqrt(dist2(lab, targetLab));
+          const score = dE + 1.5 * (parts.length - 1);
+          if (!best || score < best.score) best = { parts, lab, dE, score };
+        }
+      }
+      const g = best.parts.reduce((acc, [, n]) => gcd(acc, n), 0);
+      best.parts = best.parts.map(([i, n]) => [i, n / g]).sort((a, b) => b[1] - a[1]);
+      return best;
+    }
+
+    const recipeText = parts => parts.map(([i, n]) =>
+      `${n} ${n === 1 ? 'parte' : 'partes'} de ${PIGMENTS[i].name}`).join(' + ');
+
+    // ---------- K-means en Lab ----------
+    function kmeans(points, k, iters = 15) {
+      const centers = [points[Math.floor(Math.random() * points.length)]];
+      const d = new Float64Array(points.length);
+      while (centers.length < k) {
+        let sum = 0;
+        for (let i = 0; i < points.length; i++) {
+          d[i] = Math.min(...centers.map(c => dist2(points[i], c)));
+          sum += d[i];
+        }
+        let r = Math.random() * sum, idx = 0;
+        while ((r -= d[idx]) > 0 && idx < points.length - 1) idx++;
+        centers.push(points[idx]);
+      }
+      for (let it = 0; it < iters; it++) {
+        const acc = centers.map(() => [0, 0, 0, 0]);
+        for (const p of points) {
+          const ci = nearest(p, centers);
+          acc[ci][0] += p[0]; acc[ci][1] += p[1]; acc[ci][2] += p[2]; acc[ci][3]++;
+        }
+        acc.forEach((a, i) => { if (a[3]) centers[i] = [a[0] / a[3], a[1] / a[3], a[2] / a[3]]; });
+      }
+      return centers;
+    }
+    function nearest(p, centers) {
+      let bi = 0, bd = Infinity;
+      for (let i = 0; i < centers.length; i++) { const dd = dist2(p, centers[i]); if (dd < bd) { bd = dd; bi = i; } }
+      return bi;
+    }
+
+    // ---------- Utilidades de canvas ----------
+    function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+
+    function drawGrid(canvas, cols, rows) {
+      const ctx = canvas.getContext('2d');
+      const cw = canvas.width / cols, ch = canvas.height / rows;
+      ctx.strokeStyle = 'rgba(255,0,80,.85)'; ctx.lineWidth = 1;
+      ctx.font = 'bold 11px system-ui'; ctx.fillStyle = 'rgba(255,0,80,1)';
+      for (let i = 1; i < cols; i++) { ctx.beginPath(); ctx.moveTo(i * cw, 0); ctx.lineTo(i * cw, canvas.height); ctx.stroke(); }
+      for (let j = 1; j < rows; j++) { ctx.beginPath(); ctx.moveTo(0, j * ch); ctx.lineTo(canvas.width, j * ch); ctx.stroke(); }
+      for (let i = 0; i < cols; i++) ctx.fillText(String.fromCharCode(65 + (i % 26)), i * cw + 3, 12);
+      for (let j = 0; j < rows; j++) ctx.fillText(j + 1, 3, j * ch + ch - 4);
+    }
+
+    function figure(canvas, caption) {
+      const f = document.createElement('figure');
+      const fc = document.createElement('figcaption'); fc.textContent = caption;
+      f.append(canvas, fc); return f;
+    }
+
+    // ---------- Generación del tutorial ----------
+    $('#generate').addEventListener('click', () => {
+      $('#generate').disabled = true; $('#generate').textContent = 'Analizando…';
+      setTimeout(() => {
+        try { buildTutorial(); } finally { $('#generate').disabled = false; $('#generate').textContent = 'Generar tutorial'; }
+      }, 30);
+    });
+
+    function buildTutorial() {
+      const k = +$('#numColors').value;
+      const level = $('#level').value;
+      const wCm = +$('#widthCm').value || 30;
+      const hCm = +$('#heightCm').value || 40;
+
+      const scale = Math.min(1, 600 / Math.max(sourceImg.naturalWidth, sourceImg.naturalHeight));
+      const W = Math.round(sourceImg.naturalWidth * scale), H = Math.round(sourceImg.naturalHeight * scale);
+      const base = makeCanvas(W, H);
+      const bctx = base.getContext('2d');
+      bctx.drawImage(sourceImg, 0, 0, W, H);
+      const data = bctx.getImageData(0, 0, W, H).data;
+      const N = W * H;
+
+      const labs = new Array(N);
+      for (let i = 0; i < N; i++) labs[i] = rgbToLab([data[i * 4], data[i * 4 + 1], data[i * 4 + 2]]);
+
+      // Paleta
+      const step = Math.max(1, Math.floor(Math.sqrt(N / 15000)));
+      const samples = [];
+      for (let y = 0; y < H; y += step) for (let x = 0; x < W; x += step) samples.push(labs[y * W + x]);
+      const centers = kmeans(samples, k).sort((a, b) => a[0] - b[0]);
+
+      // Asignación de píxeles + métricas
+      const assign = new Uint8Array(N), counts = new Array(k).fill(0);
+      let sumL = 0, sumL2 = 0, sumC = 0, warm = 0, cool = 0;
+      for (let i = 0; i < N; i++) {
+        const p = labs[i];
+        const ci = nearest(p, centers); assign[i] = ci; counts[ci]++;
+        sumL += p[0]; sumL2 += p[0] * p[0];
+        const C = Math.hypot(p[1], p[2]); sumC += C;
+        if (C > 10) { const h = (Math.atan2(p[2], p[1]) * 180 / Math.PI + 360) % 360; (h < 110 || h > 330) ? warm++ : cool++; }
+      }
+      const meanL = sumL / N, stdL = Math.sqrt(sumL2 / N - meanL ** 2), meanC = sumC / N;
+      const isWarm = warm >= cool;
+
+      const palette = centers.map((lab, i) => {
+        const mix = findMix(lab);
+        return { n: i + 1, lab, rgb: labToRgb(lab), pct: counts[i] / N * 100, mix, mixRgb: labToRgb(mix.lab) };
+      });
+
+      // Cuadrícula
+      const longCm = Math.max(wCm, hCm);
+      const cellCm = longCm <= 25 ? 2.5 : longCm <= 60 ? 5 : 10;
+      const cols = Math.max(2, Math.round(wCm / cellCm)), rows = Math.max(2, Math.round(hCm / cellCm));
+
+      // Imagen con cuadrícula
+      const gridC = makeCanvas(W, H); gridC.getContext('2d').drawImage(base, 0, 0); drawGrid(gridC, cols, rows);
+
+      // Boceto de líneas (Sobel sobre luminosidad suavizada)
+      const Ls = new Float32Array(N);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        let s = 0, c = 0;
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+          const yy = y + dy, xx = x + dx;
+          if (yy >= 0 && yy < H && xx >= 0 && xx < W) { s += labs[yy * W + xx][0]; c++; }
+        }
+        Ls[y * W + x] = s / c;
+      }
+      const mag = new Float32Array(N);
+      for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+        const i = y * W + x;
+        const gx = Ls[i - W + 1] + 2 * Ls[i + 1] + Ls[i + W + 1] - Ls[i - W - 1] - 2 * Ls[i - 1] - Ls[i + W - 1];
+        const gy = Ls[i + W - 1] + 2 * Ls[i + W] + Ls[i + W + 1] - Ls[i - W - 1] - 2 * Ls[i - W] - Ls[i - W + 1];
+        mag[i] = Math.hypot(gx, gy);
+      }
+      const thr = Array.from(mag).sort((a, b) => a - b)[Math.floor(N * 0.9)] || 1;
+      const sketchC = makeCanvas(W, H), sctx = sketchC.getContext('2d');
+      const sImg = sctx.createImageData(W, H);
+      for (let i = 0; i < N; i++) {
+        const v = mag[i] > thr ? Math.max(0, 255 - mag[i] / thr * 120) : 255;
+        sImg.data[i * 4] = sImg.data[i * 4 + 1] = sImg.data[i * 4 + 2] = v; sImg.data[i * 4 + 3] = 255;
+      }
+      sctx.putImageData(sImg, 0, 0); drawGrid(sketchC, cols, rows);
+
+      // Estudio de valores (5 tonos)
+      const greys = [30, 85, 140, 195, 245];
+      const valC = makeCanvas(W, H), vctx = valC.getContext('2d');
+      const vImg = vctx.createImageData(W, H);
+      for (let i = 0; i < N; i++) {
+        const g = greys[Math.min(4, Math.floor(labs[i][0] / 20))];
+        vImg.data[i * 4] = vImg.data[i * 4 + 1] = vImg.data[i * 4 + 2] = g; vImg.data[i * 4 + 3] = 255;
+      }
+      vctx.putImageData(vImg, 0, 0);
+
+      // Imagen simplificada por manchas de color
+      const postC = makeCanvas(W, H), pctx = postC.getContext('2d');
+      const pImg = pctx.createImageData(W, H);
+      for (let i = 0; i < N; i++) {
+        const c = palette[assign[i]].rgb;
+        pImg.data[i * 4] = c[0]; pImg.data[i * 4 + 1] = c[1]; pImg.data[i * 4 + 2] = c[2]; pImg.data[i * 4 + 3] = 255;
+      }
+      pctx.putImageData(pImg, 0, 0);
+      const postNumC = makeCanvas(W, H); postNumC.getContext('2d').drawImage(postC, 0, 0); drawGrid(postNumC, cols, rows);
+
+      renderSteps({ palette, level, wCm, hCm, cols, rows, cellCm, meanL, stdL, meanC, isWarm, gridC, sketchC, valC, postC, postNumC });
+    }
+
+    function renderSteps(r) {
+      const { palette, level, wCm, hCm, cols, rows, cellCm, meanL, stdL, meanC, isWarm } = r;
+      const beginner = level === 'beginner';
+      const usedPigments = new Set([0]);
+      palette.forEach(p => p.mix.parts.forEach(([i]) => usedPigments.add(i)));
+      const longCm = Math.max(wCm, hCm);
+      const brushes = longCm <= 30
+        ? 'plano nº 4, plano nº 10, lengua de gato nº 6, redondo nº 2 y un liner fino'
+        : 'plano nº 12, plano nº 20, lengua de gato nº 10, redondo nº 4 y un liner fino';
+      const darkest = palette[0], lightest = palette[palette.length - 1];
+      const byArea = [...palette].sort((a, b) => b.pct - a.pct);
+      const key = meanL > 65 ? 'clave alta (predominan tonos claros)' : meanL < 35 ? 'clave baja (predominan tonos oscuros)' : 'clave media';
+      const contrast = stdL > 22 ? 'alto' : stdL < 12 ? 'bajo' : 'medio';
+      const sat = meanC > 35 ? 'muy saturados' : meanC < 15 ? 'apagados / neutros' : 'moderadamente saturados';
+      const ground = isWarm
+        ? 'un gris azulado suave (Azul ultramar + Sombra tostada + mucho Blanco)'
+        : 'un tono tierra cálido (Siena tostada muy diluida o con un poco de Blanco)';
+      const sw = p => `<span style="display:inline-block;width:.9em;height:.9em;border-radius:3px;vertical-align:middle;background:${css(p.rgb)};border:1px solid #0002"></span> <b>#${p.n}</b>`;
+
+      const steps = [
+        {
+          title: 'Reúne los materiales',
+          html: `<ul>
+            <li>Lienzo o tabla de <b>${wCm} × ${hCm} cm</b> (imprimado con gesso).</li>
+            <li>Pinturas acrílicas: <b>${[...usedPigments].map(i => PIGMENTS[i].name).join(', ')}</b>.</li>
+            <li>Pinceles sintéticos: ${brushes}.</li>
+            <li>Paleta (mejor húmeda o con papel de horno), pulverizador de agua, vaso de agua, trapo o papel.</li>
+            <li>Lápiz HB o grafito, goma, regla larga.</li>
+            ${beginner ? '' : '<li>Médium acrílico brillante/mate para veladuras y retardante de secado.</li>'}
+            <li>Barniz acrílico para el acabado.</li></ul>`
+        },
+        {
+          title: 'Prepara el lienzo',
+          html: `<p>Si el lienzo no viene imprimado, aplica 2 capas finas de gesso, lijando suavemente entre capas.</p>
+            <p>Después cubre todo con una <b>imprimatura</b> (capa de color base muy diluida). Para esta imagen, cuyos colores son mayoritariamente <b>${isWarm ? 'cálidos' : 'fríos'}</b>, te recomiendo ${ground}. Este fondo unificará la pintura y evitará que asomen huecos blancos.</p>
+            <div class="tip">Déjala secar del todo (15–30 min) antes de dibujar.</div>`
+        },
+        {
+          title: 'Transfiere el dibujo con una cuadrícula',
+          html: `<p>Traza sobre el lienzo con lápiz suave una cuadrícula de <b>${cols} columnas × ${rows} filas</b> (cuadros de unos <b>${(wCm / cols).toFixed(1)} × ${(hCm / rows).toFixed(1)} cm</b>). Copia cuadro a cuadro las líneas principales del boceto: contornos de las formas grandes y límites entre zonas de luz y sombra.</p>
+            ${beginner ? '<div class="tip">No dibujes detalles pequeños: solo las formas grandes. Los detalles los pintarás al final.</div>' : '<div class="tip">Marca también con líneas suaves los límites de las sombras principales; te servirán para el bloqueo.</div>'}`,
+          imgs: [[r.gridC, 'Referencia con cuadrícula'], [r.sketchC, 'Líneas guía para copiar']]
+        },
+        {
+          title: 'Entiende los valores (claros y oscuros)',
+          html: `<p>Esta imagen está en <b>${key}</b> con un contraste <b>${contrast}</b>. El estudio en 5 grises muestra dónde van las sombras más profundas y las luces más brillantes.</p>
+            ${contrast === 'bajo' ? '<div class="tip">El contraste es bajo: puedes exagerar un poco los oscuros y las luces para que el cuadro tenga más fuerza.</div>' : ''}
+            ${beginner ? '<div class="tip">Entrecierra los ojos al mirar la referencia: verás las masas de valor sin distraerte con detalles.</div>' : '<div class="tip">Opcional: pinta un pequeño estudio en grises (blanco + negro) de 10×15 cm antes de empezar.</div>'}`,
+          imgs: [[r.valC, 'Estudio de valores en 5 tonos']]
+        },
+        {
+          title: 'Prepara las mezclas de color',
+          html: `<p>Los colores son <b>${sat}</b>. Estas son las ${palette.length} mezclas principales, ordenadas de la más oscura a la más clara. A la izquierda de cada muestra: arriba el color de la imagen, abajo el resultado aproximado de la mezcla.</p>
+            <div class="swatches">${palette.map(p => `
+              <div class="swatch">
+                <div class="chips"><div class="chip" style="background:${css(p.rgb)}"></div><div class="chip" style="background:${css(p.mixRgb)}"></div></div>
+                <div><b>#${p.n}</b> <small>(${p.pct.toFixed(0)}% de la imagen)</small><br>${recipeText(p.mix.parts)}
+                ${p.mix.dE > 12 ? '<br><small>Ajusta a ojo: la mezcla es aproximada.</small>' : ''}</div>
+              </div>`).join('')}</div>
+            <div class="tip">Mezcla siempre el color oscuro sobre el claro poco a poco (sobre todo con azul ftalo y negro, que tiñen mucho). Prepara cantidad suficiente de los colores que más superficie ocupan: ${byArea.slice(0, 3).map(sw).join(', ')}.</div>
+            <p style="font-size:.85rem;color:var(--muted)">Las proporciones son orientativas; cada marca de pintura varía.</p>`
+        },
+        {
+          title: 'Bloquea las masas de color',
+          html: `<p>Pinta las zonas grandes con colores planos siguiendo la imagen simplificada. Empieza por el <b>fondo</b> y los <b>oscuros</b> y avanza hacia los claros:</p>
+            <p>${palette.map(sw).join(' → ')}</p>
+            <p>Usa el pincel plano grande y pintura algo cremosa. No busques perfección: el objetivo es cubrir el lienzo y tener cada zona con su color y valor correctos.</p>
+            ${beginner ? '<div class="tip">El acrílico seca rápido: trabaja por secciones y pulveriza agua en la paleta cada pocos minutos.</div>' : '<div class="tip">Añade unas gotas de retardante para tener más tiempo de fundir bordes en esta fase.</div>'}`,
+          imgs: [[r.postC, 'Imagen simplificada por colores'], [r.postNumC, 'Con cuadrícula para orientarte']]
+        },
+        {
+          title: 'Construye capas y transiciones',
+          html: `<p>Con la primera capa seca, pinta una segunda capa refinando formas. Para los degradados, coloca los dos colores vecinos uno junto al otro y fúndelos con el pincel limpio y ligeramente húmedo, con trazos cortos en zigzag.</p>
+            <ul>
+              <li>Suaviza los bordes de las sombras y deja nítidos los bordes de los objetos en primer plano.</li>
+              <li>${meanC > 35 ? 'Los colores son intensos: evita ensuciarlos con negro, oscurece mejor con su complementario o con Sombra tostada.' : 'Los colores son apagados: puedes neutralizar cualquier mezcla añadiendo una pizca de su complementario.'}</li>
+              ${beginner ? '<li>Si una capa no cubre, espera a que seque y aplica otra; es normal necesitar 2–3 capas.</li>' : '<li>Usa veladuras (pintura muy transparente con médium) para enriquecer sombras y ajustar la temperatura de color.</li><li>Prueba el frotado en seco (scumbling) para texturas y atmósfera.</li>'}
+            </ul>`
+        },
+        {
+          title: 'Detalles y luces finales',
+          html: `<p>Con el pincel redondo pequeño y el liner, añade los detalles: texturas, líneas finas, reflejos. Deja para el final las <b>luces más brillantes</b> (${sw(lightest)} e incluso Blanco puro) y los <b>acentos más oscuros</b> (${sw(darkest)}).</p>
+            <div class="tip">Aléjate 2–3 metros del cuadro cada cierto tiempo o hazle una foto y mírala en el móvil: verás enseguida qué falta.</div>`
+        },
+        {
+          title: 'Acabado',
+          html: `<p>Deja secar el cuadro al menos 24–72 horas. Aplica 1–2 capas finas de barniz acrílico (mate, satinado o brillante según el efecto que quieras) con una brocha ancha y limpia. ¡No olvides firmar tu obra! ✍️</p>`
+        }
+      ];
+
+      const container = $('#steps'); container.innerHTML = '';
+      steps.forEach((s, i) => {
+        const card = document.createElement('article');
+        card.className = 'card step';
+        card.innerHTML = `<h2><span class="num">${i + 1}</span>${s.title}<input type="checkbox" title="Marcar como hecho"></h2>${s.html}`;
+        card.querySelector('input').addEventListener('change', e => card.classList.toggle('done', e.target.checked));
+        if (s.imgs) {
+          const box = document.createElement('div'); box.className = 'imgs';
+          s.imgs.forEach(([c, cap]) => box.append(figure(c, cap)));
+          card.append(box);
+        }
+        container.append(card);
+      });
+      $('#results').style.display = 'block';
+      $('#results').scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
